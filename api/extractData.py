@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Database connection parameters
+# Database connection (using pgAdmin) parameters stored in env file
 conn = psycopg2.connect(
     host=os.getenv('DB_HOST'),
     database=os.getenv('DB_NAME'),
@@ -18,32 +18,21 @@ conn = psycopg2.connect(
 # Create a cursor object
 cur = conn.cursor()
 
-
+# AWS credential parameters, for fetching the data, sotred in env file
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-# Function to insert data into the database
-def insert_data(record):
-    region = record["region"]
-    instance_type = record["instance_type"]
-    price = record['spot_price']
-    timestamp = record['timestamp']
-    cur.execute(
-        "INSERT INTO spot_price_data (region, instance_type, spot_price, timestamp) VALUES (%s, %s, %s, %s)",
-        (region, instance_type, price, timestamp)
-    )
-    conn.commit()
 
 
-
+# Top function for pulling the data
 def get_spot_price_data():
     try:
         # making sure at each call we will restart the DB to avoid duplicates
         cur.execute(
         "DELETE FROM spot_price_data"
     )
-        print("Cleared old data")
-        regions = get_all_regions()
+        print("Cleared old data") 
+        regions = get_all_regions()       
         for region in regions:
             get_one_region_records(region)
             print(f'finished iterating over region: {region}')
@@ -54,7 +43,20 @@ def get_spot_price_data():
     cur.close()
     conn.close()
 
+# Function to insert data of a specific record into the database
+def insert_data(record):
+    region = record["region"]
+    instance_type = record["instance_type"]
+    price = record['spot_price']
+    cur.execute(
+        "INSERT INTO spot_price_data (region, instance_type, spot_price) VALUES (%s, %s, %s)",
+        (region, instance_type, price)
+    )
+    conn.commit()
 
+
+
+# Function to pull all the region's names from API, which are accessible for the account
 def get_all_regions():
     ec2 = boto3.client(
         'ec2',
@@ -73,27 +75,19 @@ def get_one_region_records(region):
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key
         )
+    currDate = datetime.datetime.now(datetime.timezone.utc).isoformat()
     response = ec2.describe_spot_price_history(
-            StartTime=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            StartTime=currDate,
             )
     for item in response['SpotPriceHistory']:
         record = {
             "region" : region,
             "instance_type": item["InstanceType"],
-            "spot_price": item["SpotPrice"],
-            "timestamp": item["Timestamp"].isoformat() # formatted ,    
+            "spot_price": item["SpotPrice"],  
         }
 
         insert_data(record)
+
         
-
-
-
-# Make sure to replace the placeholder credentials with your actual AWS credentials
-# if __name__ == "__main__":
-
-#     get_spot_price_data()
-
-    # Assume 'get_spot_price_data' fetches data and calls 'insert_data' for each record
 
 

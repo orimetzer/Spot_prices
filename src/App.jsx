@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import { Table } from 'antd';
-// import 'antd/dist/antd.css'; // Import Ant Design CSS
-
 
 function App() {
   const [data, setData] = useState([]);
@@ -14,13 +12,15 @@ function App() {
     instanceType: '',
     spotPrice: '',
   });
+  const [stealsData, setStealsData] = useState([]);
 
+  
 
   const refreshData = () => {
     setLoading(true);
-    fetch('http://localhost:5000/api/refresh_data', { 
+    fetch('http://localhost:5000/api/refresh_data', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json'
       },
     })
@@ -29,7 +29,6 @@ function App() {
       setMessage(data.status);
       setLoading(false);
       if (data.success) {
-        // Refresh the page after successful data refresh
         window.location.reload();
       }
     })
@@ -40,7 +39,6 @@ function App() {
     });
   };
 
-
   useEffect(() => {
     fetch('http://localhost:5000/api/spot_prices')
       .then(response => response.json())
@@ -50,15 +48,33 @@ function App() {
           region: item.region,
           instanceType: item.instance_type,
           spotPrice: item.spot_price,
-          timestamp: item.timestamp
         }));
         setData(formattedData);
-        setFilteredData(formattedData);  // Directly setting filteredData here
-
+        setFilteredData(formattedData);  // Assuming you want to initially display all data
       })
       .catch(error => console.error('Failed to fetch data:', error));
   }, []);
 
+
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/best_prices')
+      .then(response => response.json())
+      .then(data => {
+        const formattedSteaslData = data.map((item, index) => ({
+          key: index,
+          region: item.region,
+          instanceType: item.instance_type,
+          spotPrice: item.spot_price,
+        }));
+        setStealsData(formattedSteaslData);
+      })
+      .catch(error => console.error('Failed to fetch steals data:', error));
+  }, []);
+
+  useEffect(() => {
+    filterData();
+  }, [searchTerms]);  // Reacting only to searchTerms changes
 
   const filterData = () => {
     const filtered = data.filter(item =>
@@ -69,20 +85,24 @@ function App() {
     setFilteredData(filtered);
   };
 
-  const handleSearchChange = (value, field) => {
-    setSearchTerms(prev => ({ ...prev, [field]: value }));
-    filterData();
+  const handleKeyDown = (e, field) => {
+    if (e.key === 'Enter') {
+      setSearchTerms(prev => ({
+        ...prev,
+        [field]: e.target.value
+      }));
+    }
   };
-
+  
   const columns = [
     {
       title: (
         <>
           Region 
           <input 
-            value={searchTerms.region} 
-            onChange={e => handleSearchChange(e.target.value, 'region')} 
-            onClick={e => e.stopPropagation()}  // Prevent sorting when interacting with input
+            defaultValue={searchTerms.region} 
+            onKeyDown={e => handleKeyDown(e, 'region')} 
+            onClick={e => e.stopPropagation()} 
             placeholder="Search region" 
             style={{ width: '100%' }} 
           />
@@ -96,9 +116,9 @@ function App() {
         <>
           Instance Type 
           <input 
-            value={searchTerms.instanceType} 
-            onChange={e => handleSearchChange(e.target.value, 'instanceType')} 
-            onClick={e => e.stopPropagation()}  // Prevent sorting when interacting with input
+            defaultValue={searchTerms.instanceType} 
+            onKeyDown={e => handleKeyDown(e, 'instanceType')} 
+            onClick={e => e.stopPropagation()} 
             placeholder="Search instance" 
             style={{ width: '100%' }} 
           />
@@ -112,9 +132,9 @@ function App() {
         <>
           Spot Price 
           <input 
-            value={searchTerms.spotPrice} 
-            onChange={e => handleSearchChange(e.target.value, 'spotPrice')} 
-            onClick={e => e.stopPropagation()}  // Prevent sorting when interacting with input
+            defaultValue={searchTerms.spotPrice} 
+            onKeyDown={e => handleKeyDown(e, 'spotPrice')} 
+            onClick={e => e.stopPropagation()} 
             placeholder="Search price" 
             style={{ width: '100%' }} 
           />
@@ -125,16 +145,30 @@ function App() {
     }
   ];
 
-  // function formatTimestamp(timestamp) {
-  //   const date = new Date(timestamp);
-  //   const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-  //   const formattedTime = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-  //   return `Date: ${formattedDate} and Time: ${formattedTime}`;
-  // }
 
-  function formatDate(date) {
+  const columnsStealsData = [
+    {
+      title: 'Region',
+      dataIndex: 'region',
+      key: 'region',
+    },
+    {
+      title: 'Instance Type',
+      dataIndex: 'instanceType',
+      key: 'instanceType',
+    },
+    {
+      title: 'Spot Price',
+      dataIndex: 'spotPrice',
+      key: 'spotPrice',
+    }
+  ];
+
+
+  function formatDate(isoDate) {
+    const date = new Date(isoDate)
     const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');  // Months are zero-indexed
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -142,29 +176,33 @@ function App() {
     return `Spot Prices for day ${year}-${month}-${day} and time ${hours}:${minutes}`;
   }
 
+  // decide what to do with
   const currDate = new Date();
   const formattedDate = formatDate(currDate);
 
   return (
     <div>
       <div>
-        <h1>Welcome to Ori page</h1>
+        <h1>CloudHiro Full Stack Exam - AWS Spot Prices</h1>
+        <h3>Author: Ori Metzer</h3>
+        {/* <h1>{timestamp}</h1> */}
       </div>
       <div>
+        <p>{message}</p>
+      </div>
+      <h2>{formattedDate}</h2>
       <button onClick={refreshData} disabled={loading}>
-        {loading ? 'Refreshing...' : 'Refresh Data'}
-      </button>
-      <p>{message}</p>
-    </div>
- 
-    <h1>{formattedDate}</h1>
-          <div>
-      <Table columns={columns} dataSource={filteredData} />
-    </div>
-    
+          {loading ? 'Refreshing...' : 'Refresh Data'}
+        </button>
+      <div>
+        <Table columns={columns} dataSource={filteredData} />
+      </div>
+      <h2>Steals : Check Out The Best Current Spot Prices For Each Region</h2>
+      <div>
+        <Table columns={columnsStealsData} dataSource={stealsData} />
+      </div>
     </div>
   );
 }
 
 export default App;
-

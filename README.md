@@ -1,4 +1,4 @@
-Set up instructions<br>
+**Project Setup Instructions**<br>
 Prerequisites:
 - PostgreSQL installed on your local machine.<br>
 - Node.js installed.<br>

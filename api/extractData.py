@@ -1,40 +1,46 @@
 import datetime
 import boto3
 import psycopg2
-import json
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Database connection (using pgAdmin) parameters stored in env file
-conn = psycopg2.connect(
-    host=os.getenv('DB_HOST'),
-    database=os.getenv('DB_NAME'),
-    user=os.getenv('DB_USER'),
-    password=os.getenv('DB_PASSWORD')
-)
 
-# Create a cursor object
-cur = conn.cursor()
-
-# AWS credential parameters, for fetching the data, sotred in env file
+# AWS credential, for fetching the data, sotred in env file
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
 
 
-# Top function for pulling the data
 def get_spot_price_data():
+    """
+    Pulls the latest spot price data from AWS EC2 and stores it in the PostgreSQL database.
+    Clears the existing data from the 'spot_price_data' table to prevent duplicates before
+    inserting the new data. This function organizes the process by fetching all available
+    AWS regions and iterating over them to fetch and store their spot price data.
+
+    Exceptions:
+        General exceptions are caught and logged, which could occur during database operations
+        or AWS API calls.
+    """
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(
+    host=os.getenv('DB_HOST'),
+    database=os.getenv('DB_NAME'),
+    user=os.getenv('DB_USER'),
+    password=os.getenv('DB_PASSWORD')
+)
+    # Create a cursor object 
+    cur = conn.cursor()
     try:
-        # making sure at each call we will restart the DB to avoid duplicates
         cur.execute(
         "DELETE FROM spot_price_data"
     )
         print("Cleared old data") 
         regions = get_all_regions()       
         for region in regions:
-            get_one_region_records(region)
+            get_one_region_records(region,cur, conn)
             print(f'finished iterating over region: {region}')
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -43,8 +49,19 @@ def get_spot_price_data():
     cur.close()
     conn.close()
 
-# Function to insert data of a specific record into the database
-def insert_data(record):
+
+def insert_data(record, cur, conn):
+    """
+    Inserts a single record of spot price data into the PostgreSQL database.
+
+    Args:
+        record (dict): Contains the 'region', 'instance_type', and 'spot_price'.
+        cur (cursor): Database cursor for PostgreSQL.
+        conn (connection): Database connection object for PostgreSQL.
+
+    This function executes an SQL command to insert the provided data into the
+    'spot_price_data' table.
+    """
     region = record["region"]
     instance_type = record["instance_type"]
     price = record['spot_price']
@@ -56,8 +73,16 @@ def insert_data(record):
 
 
 
-# Function to pull all the region's names from API, which are accessible for the account
 def get_all_regions():
+    """
+    Retrieves a list of all regions available for the AWS account associated with the provided credentials.
+
+    Returns:
+        list: A list of region names.
+
+    Utilizes the AWS EC2 client to describe regions, returning the names of all available regions.
+    This is used to determine where spot price data should be fetched from.
+    """
     ec2 = boto3.client(
         'ec2',
         region_name='us-east-1',
@@ -68,7 +93,18 @@ def get_all_regions():
     return [region['RegionName'] for region in response['Regions']]
 
 
-def get_one_region_records(region):
+def get_one_region_records(region, cur, conn):
+    """
+    Fetches and stores spot prices for a specific region.
+
+    Args:
+        region (str): The name of the region to fetch data for.
+        cur (cursor): Database cursor for PostgreSQL.
+        conn (connection): Database connection object for PostgreSQL.
+
+    Fetches the spot price history for EC2 instances from AWS starting from the current UTC time.
+    Data for each spot price point is then inserted into the database using `insert_data`.
+    """
     ec2 = boto3.client(
             'ec2',
             region_name=region,
@@ -86,7 +122,7 @@ def get_one_region_records(region):
             "spot_price": item["SpotPrice"],  
         }
 
-        insert_data(record)
+        insert_data(record, cur, conn)
 
         
 

@@ -2,9 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from sqlalchemy import create_engine, text
 import os
-from flask import redirect
 from extractData import get_spot_price_data
-
 
 
 app = Flask(__name__)

@@ -124,5 +124,3 @@ def get_one_region_records(region, cur, conn):
         insert_data(record, cur, conn)
 
         
-
-

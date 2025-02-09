@@ -1,5 +1,7 @@
-<!--Here are the steps for running the application: -->
-- Important notice: I used Postgres for storing DB on my local machine. In order to run a demo, you’ll need to create a local Postgres DB on your machine and change the environment file according to your DB parameters.
+<b>Here are the steps for running the application:<b><br>
+- Important notice: I used Postgres for storing DB on my local machine. In order to run a demo, you’ll need to create a local Postgres DB on your machine and change the environment file according to your DB parameters. <br>
+DB schema is mentioned on the file 'dbSchemaForPostgres'<br>
+
 - Download this git repo.
 - Make sure you get the environment file separately, change it according to your local DB set up and add the file to the folder.
 - Open a terminal and run the following commands, make sure you are in the correct path of the project’s folder: <br>

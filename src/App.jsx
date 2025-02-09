@@ -105,18 +105,18 @@ function App() {
 
   // Filter data based on search terms
   useEffect(() => {
+    const filterData = () => {
+      const filtered = data.filter(item =>
+        item.region.toLowerCase().includes(searchTerms.region.toLowerCase()) &&
+        item.instanceType.toLowerCase().includes(searchTerms.instanceType.toLowerCase()) &&
+        item.spotPrice.toString().includes(searchTerms.spotPrice)
+      );
+      setFilteredData(filtered);
+    };
     filterData();
-  }, [searchTerms]); 
+  }, [searchTerms, data]); 
 
 
-  const filterData = () => {
-    const filtered = data.filter(item =>
-      item.region.toLowerCase().includes(searchTerms.region.toLowerCase()) &&
-      item.instanceType.toLowerCase().includes(searchTerms.instanceType.toLowerCase()) &&
-      item.spotPrice.toString().includes(searchTerms.spotPrice)
-    );
-    setFilteredData(filtered);
-  };
 
   // Updates the displayed table once the Enter button is pressed from a search box
   const handleKeyDown = (e, field) => {

@@ -1,4 +1,4 @@
-<b>Here are the steps for running the application:<br>
+Set up instructions<br>
 Prerequisites:
 - PostgreSQL installed on your local machine.<br>
 - Node.js installed.<br>
@@ -6,6 +6,8 @@ Prerequisites:
 <br>
 - Important notice: I used Postgres for storing DB on my local machine. In order to run a demo, you’ll need to create a local Postgres DB on your machine and change the environment file according to your DB parameters. <br>
 DB schema is mentioned on the file 'dbSchemaForPostgres'<br>
+<br>
+Here are the steps for running the application:<br>
 
 - Download this git repo.
 - Make sure you get the environment file separately, change it according to your local DB set up and add the file to the folder.
